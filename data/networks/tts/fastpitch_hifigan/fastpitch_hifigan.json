@@ -1,0 +1,15 @@
+{
+   "generator": {
+      "model_path": "fastpitch.onnx",
+      "type": "tts_generator",
+      "backend": "onnxruntime",
+      "sample_rate": 22050
+   },
+   "vocoder": {
+      "model_path": "hifigan.onnx",
+      "type": "tts_vocoder",
+      "features": 80,
+      "sample_rate": 22050
+   },
+   "type": "tts"
+}

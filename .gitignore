@@ -3,7 +3,7 @@
 *.nemo
 *.onnx
 *.engine
-*.ckpy
+*.ckpt
 
 logs/
 packages/

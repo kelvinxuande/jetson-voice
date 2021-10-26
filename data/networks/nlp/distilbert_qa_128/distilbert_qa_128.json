@@ -1,0 +1,79 @@
+{
+  "nemo_path": null,
+  "dataset": {
+    "version_2_with_negative": false,
+    "doc_stride": 64,
+    "max_query_length": 64,
+    "max_seq_length": 128,
+    "max_answer_length": 30,
+    "null_score_diff_threshold": 0.0,
+    "n_best_size": 20,
+    "use_cache": true,
+    "do_lower_case": true,
+    "num_workers": 2,
+    "pin_memory": false,
+    "drop_last": false
+  },
+  "train_ds": {
+    "file": "datasets/squad/v1.1/train-v1.1.json",
+    "batch_size": 12,
+    "shuffle": true,
+    "num_samples": -1,
+    "num_workers": 2,
+    "drop_last": false,
+    "pin_memory": false
+  },
+  "validation_ds": {
+    "file": "datasets/squad/v1.1/dev-v1.1.json",
+    "batch_size": 12,
+    "shuffle": false,
+    "num_samples": -1,
+    "num_workers": 2,
+    "drop_last": false,
+    "pin_memory": false
+  },
+  "test_ds": {
+    "file": "datasets/squad/v1.1/dev-v1.1.json",
+    "batch_size": 12,
+    "shuffle": false,
+    "num_samples": -1,
+    "num_workers": 2,
+    "drop_last": false,
+    "pin_memory": false
+  },
+  "tokenizer": {
+    "tokenizer_name": "distilbert-base-uncased-distilled-squad",
+    "vocab_file": "/root/.cache/huggingface/nemo_nlp_tmp/160b140d3d87783dd7cf747c1109aae0/tokenizer.vocab_file",
+    "tokenizer_model": null,
+    "special_tokens": null
+  },
+  "language_model": {
+    "pretrained_model_name": "distilbert-base-uncased-distilled-squad",
+    "lm_checkpoint": null,
+    "config_file": "distilbert-base-uncased-distilled-squad_encoder_config.json",
+    "config": null
+  },
+  "token_classifier": {
+    "num_layers": 1,
+    "dropout": 0.0,
+    "num_classes": 2,
+    "activation": "relu",
+    "log_softmax": false,
+    "use_transformer_init": true
+  },
+  "optim": {
+    "name": "adamw",
+    "lr": 3e-05,
+    "weight_decay": 0.0,
+    "sched": {
+      "name": "SquareRootAnnealing",
+      "monitor": "val_loss",
+      "reduce_on_plateau": false,
+      "warmup_steps": null,
+      "warmup_ratio": 0.0,
+      "last_epoch": -1
+    }
+  },
+  "target": "nemo.collections.nlp.models.question_answering.qa_model.QAModel",
+  "type": "qa"
+}

@@ -1,0 +1,3 @@
+test-1: {"audio_filepath": "./PART2/DATA/CHANNEL0/WAVE/SPEAKER2001/SESSION0/020010131.WAV", "duration": 8.331, "text": "n r i c is s nine three two five four eight seven m and date of birth is fifteen august nineteen fifty eight"}
+test-2: {"audio_filepath": "./PART3_snippets/Audio Same CloseMic/3223-2/3223-2_792.wav", "duration": 6.376, "text": "yellow color ah but this one packet i don't know and this one i could eat two packet only ah cause the thing i eat so many ah very heaty ah"}
+test-3: {"audio_filepath": "./PART4_snippets/Codeswitching/Same Room Audio/sur_0284_1568_phns_cs-chn/sur_0284_1568_phns_cs-chn_158.wav", "duration": 4.81, "text": "and then all their elderly friends also because you know it's high risks mah so they also cannot meet together"}
