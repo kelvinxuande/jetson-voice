@@ -1,4 +1,10 @@
-data/
+# data/
+*.bin
+*.nemo
+*.onnx
+*.engine
+*.ckpy
+
 logs/
 packages/
 # Byte-compiled / optimized / DLL files
