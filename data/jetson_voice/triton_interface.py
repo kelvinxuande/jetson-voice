@@ -112,7 +112,7 @@ class tritonInterface:
 
         # converting torch tensor to numpy array
         input_samples = self.torch_to_numpy(input_samples)
-        print(f"[jetson_voice/tritonInterface] input_samples.shape: {input_samples.shape}, type(input_samples): {type(input_samples)}")
+        # print(f"[jetson_voice/tritonInterface] input_samples.shape: {input_samples.shape}, type(input_samples): {type(input_samples)}")
 
         # initialise a new triton Inference Server Client
         # An InferenceServerClient object is used to perform any kind of
@@ -146,7 +146,6 @@ class tritonInterface:
         # print(f"InferResultOutput: {InferResultOutput}, type(InferResultOutput): {type(InferResultOutput)}")
         
         InferResultNumpy = InferResult.as_numpy(name="logprobs")
-        print(f"[jetson_voice/tritonInterface] InferResultNumpy.shape: {InferResultNumpy.shape}, type(InferResultNumpy): {type(InferResultNumpy)}")
-        # print(f"InferResultNumpy: {InferResultNumpy}, type(InferResultNumpy): {type(InferResultNumpy)}, InferResultNumpy.shape: {InferResultNumpy.shape}")
+        # print(f"[jetson_voice/tritonInterface] InferResultNumpy.shape: {InferResultNumpy.shape}, type(InferResultNumpy): {type(InferResultNumpy)}")
 
         return InferResultNumpy # as output_samples

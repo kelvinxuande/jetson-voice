@@ -28,7 +28,7 @@ def audio_to_float(samples):
     """
     Convert audio samples to 32-bit float in the range [-1,1]
     """
-    print(f"[jetson_voice/utils/audio.py] Converting audio samples to 32-bit float in the range [-1,1]")
+    # print(f"[jetson_voice/utils/audio.py] Converting audio samples to 32-bit float in the range [-1,1]")
     if samples.dtype == np.float32:
         return samples
         
@@ -74,7 +74,7 @@ class AudioWavStream:
     """
     Audio playback stream from .wav file
     """
-    print("[jetson_voice/utils/audio.py] Initialising audio playback stream from .wav file")
+    # print("[jetson_voice/utils/audio.py] Initialising audio playback stream from .wav file")
     def __init__(self, filename, sample_rate, chunk_size):
         self.filename = filename
         self.chunk_size = chunk_size

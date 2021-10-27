@@ -21,7 +21,7 @@ class ASREngine(ASRService):
     Streaming ASR (Automatic Speech Recognition) model in TensorRT or onnxruntime.
     This model is primarily designed to be used on a live audio source like a microphone.
     """
-    print("[jetson_voice/models/asr/asr_engine.py] Initialising ASREngine, loads a streaming ASR model from ONNX or serialized TensorRT engine")
+    # print("[jetson_voice/models/asr/asr_engine.py] Initialising ASREngine, loads a streaming ASR model from ONNX or serialized TensorRT engine")
     def __init__(self, config, *args, **kwargs):
         """
         Loads a streaming ASR model from ONNX or serialized TensorRT engine.

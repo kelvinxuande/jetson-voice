@@ -41,7 +41,7 @@ class ConfigDict(dict):
     Configuration dict that can be loaded from JSON and has members
     accessible via attributes and can watch for updates to keys.
     """
-    print("[jetson_voice/utils/config.py] Creating a configuration dict that can be loaded from JSON and has members accessible via attributes. Watches for updates to keys")
+    # print("[jetson_voice/utils/config.py] Creating a configuration dict that can be loaded from JSON and has members accessible via attributes. Watches for updates to keys")
     def __init__(self, *args, path=None, watch=None, **kwargs):
         """
         Parameters:
