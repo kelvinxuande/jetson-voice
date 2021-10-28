@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
+# https://github.com/daquexian/onnx-simplifier - converting dynamic shapes to fixed shapes
+
 import os
 import json
 import time
@@ -56,10 +58,8 @@ class tritonASRclient():
         # duration of overlap before/after current frame, seconds
         if 'streaming' not in self.config:
             self.config['streaming'] = {
-                "frame_length": 1.0,
-                "frame_overlap": 0.5
-                # "frame_length": 0.5,
-                # "frame_overlap": 0.5
+                "frame_length": 1.0,    # 1.0
+                "frame_overlap": 0.01   # 0.5
             }
         if 'preprocessor' not in self.config:
             self.config['preprocessor'] = {
@@ -149,14 +149,16 @@ class tritonASRclient():
 
         # preprocessor (adapted from load the model)
         self.features = self.config["preprocessor"]["features"]
-        self.time_to_fft = self.sample_rate * (1.0 / 160.0)     # rough conversion from samples to MEL spectrogram dims
+
+        # # THIS IS UNUSED:
         # self.time_to_fft = self.sample_rate * (1.0 / 160.0)     # rough conversion from samples to MEL spectrogram dims
-        self.dynamic_shapes = {
-            'min' : (1, self.features, int(0.1 * self.time_to_fft)), # minimum plausible frame length
-            'opt' : (1, self.features, int(1.5 * self.time_to_fft)), # default of .5s overlap factor (1,64,121)
-            'max' : (1, self.features, int(3.0 * self.time_to_fft))  # enough for 2s overlap factor
-        }
-        #
+        # # self.time_to_fft = self.sample_rate * (1.0 / 160.0)     # rough conversion from samples to MEL spectrogram dims
+        # self.dynamic_shapes = {
+        #     'min' : (1, self.features, int(0.1 * self.time_to_fft)), # minimum plausible frame length
+        #     'opt' : (1, self.features, int(1.5 * self.time_to_fft)), # default of .5s overlap factor (1,64,121)
+        #     'max' : (1, self.features, int(3.0 * self.time_to_fft))  # enough for 2s overlap factor
+        # }
+        # #
 
         # create streaming buffer
         print("[jetson_voice/tritonASRclient] Loading configs for streaming buffer")
@@ -206,6 +208,7 @@ class tritonASRclient():
           latest (string) -- the latest additions to the transcript
           end (bool) -- if true, end-of-sequence due to silence
         """
+        # https://stackoverflow.com/questions/509211/understanding-slice-notation
 
         samples = audio_to_float(samples)
 
