@@ -11,16 +11,19 @@ import random
 import numpy as np
 import grpc
 import torch
+from jetson_voice.utils import softmax
+from termcolor import colored
 
 import tritonclient
 from tritonclient.grpc import *
 from tritonclient.grpc import service_pb2
 from tritonclient.grpc import service_pb2_grpc
 
+from tritonclient.utils import InferenceServerException
 
 class tritonInterface:
 
-    def __init__(self):
+    def __init__(self, ctc_decoder, buffer_duration, frame_length, frame_overlap):
         self.flags = {
             "verbose": False,
             "async": False,
@@ -30,6 +33,11 @@ class tritonInterface:
             "batch-size": 1,
             "url": "localhost:8001",
         }
+
+        self.ctc_decoder = ctc_decoder
+        self.buffer_duration = buffer_duration
+        self.frame_length = frame_length
+        self.frame_overlap = frame_overlap
 
         self.response_modelconfigrequest=None
         self.buffer = []
@@ -107,6 +115,47 @@ class tritonInterface:
     def torch_to_numpy(self, tensor):
         return tensor.detach().cpu().numpy() if tensor.requires_grad else tensor.cpu().numpy()
 
+    def callback(self, result, error):
+        if error:
+            if type(error) == InferenceServerException:
+                print(f"[jetson_voice/tritonInterface] Caught InferenceServerException: {error}")
+            else:
+                print(f"[jetson_voice/tritonInterface] Unknown error in callback: {error}")
+        else:
+            # error=None, results of an inference as grpcclient.InferResult in result
+            logits = result.as_numpy(name="logprobs") # aka InferResultNumpy
+
+            # # run the asr model
+            # logits = self.model.execute(torch_to_numpy(preprocessed_signal))
+            logits = np.squeeze(logits)
+            # print(f"[jetson_voice/tritonASRclient] logits.shape after squeeze: {logits.shape}, type(logits) after squeeze: {type(logits)}")
+            logits = softmax(logits, axis=-1)
+            # print(f"[jetson_voice/tritonASRclient] logits.shape after softmax: {logits.shape}, type(logits) after softmax: {type(logits)}")
+
+
+            # set some parameters for the CTC decoder
+            self.timestep_duration = self.buffer_duration / logits.shape[0]
+            self.n_timesteps_frame = int(self.frame_length / self.timestep_duration)
+            self.n_timesteps_overlap = int(self.frame_overlap / self.timestep_duration)
+
+            # print(f"[jetson_voice/tritonASRclient] setting ctc_decoder set_timestep_duration as self.timestep_duration:{self.timestep_duration}")
+            # print(f"[jetson_voice/tritonASRclient] setting ctc_decoder set_timestep_delta as self.n_timesteps_frame:{self.n_timesteps_frame}")
+            self.ctc_decoder.set_timestep_duration(self.timestep_duration)
+            self.ctc_decoder.set_timestep_delta(self.n_timesteps_frame)
+
+
+            transcripts = self.ctc_decoder.decode(logits)
+            # print(f"[jetson_voice/tritonASRclient] Transcripts: {transcripts}")
+            # print(f"[jetson_voice/tritonASRclient] Transcripts length: {len(transcripts)}")
+            # print(f"[jetson_voice/tritonASRclient] Transcripts of type: {type(transcripts)}")
+
+            if len(transcripts[0]['text']) > 0:
+                if transcripts[0]['end']:
+                    print(colored("{}".format(transcripts[0]['text']), 'yellow'))
+                else:
+                    print(transcripts[0]['text'])
+
+
     def streaming_asr(self, input_samples):
         # TODO, good reference: https://github.com/triton-inference-server/client/blob/main/src/python/library/tritonclient/grpc/__init__.py
 
@@ -132,11 +181,19 @@ class tritonInterface:
         # requested output tensor for an inference request.
         # output_tensor = tritonclient.grpc.InferRequestedOutput(name='logprobs', class_count=26)
 
-        InferResult = client.infer(
-            model_name=self.flags["model-name"],
-            inputs=[input_tensor],
-            model_version=self.flags["model-version"],
-        )
+        # Inference call
+        client.async_infer( 
+            self.flags["model-name"], 
+            inputs=[input_tensor], 
+            callback=partial(self.callback), 
+            client_timeout=3000)
+        # InferResult = client.infer(
+        #     model_name=self.flags["model-name"],
+        #     inputs=[input_tensor],
+        #     model_version=self.flags["model-version"],
+        # )
+
+
 
         # NOT NEEDED, for debugging response
         # InferResultResponse = InferResult.get_response(as_json=True)
@@ -145,7 +202,10 @@ class tritonInterface:
         # InferResultOutput = InferResult.get_output(name="logprobs", as_json=True)
         # print(f"InferResultOutput: {InferResultOutput}, type(InferResultOutput): {type(InferResultOutput)}")
         
-        InferResultNumpy = InferResult.as_numpy(name="logprobs")
-        # print(f"[jetson_voice/tritonInterface] InferResultNumpy.shape: {InferResultNumpy.shape}, type(InferResultNumpy): {type(InferResultNumpy)}")
 
-        return InferResultNumpy # as output_samples
+
+
+        # InferResultNumpy = InferResult.as_numpy(name="logprobs")
+        # # print(f"[jetson_voice/tritonInterface] InferResultNumpy.shape: {InferResultNumpy.shape}, type(InferResultNumpy): {type(InferResultNumpy)}")
+
+        # return InferResultNumpy # as output_samples

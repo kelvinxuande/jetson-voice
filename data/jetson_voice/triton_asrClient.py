@@ -23,9 +23,6 @@ from triton_interface import tritonInterface
 from jetson_voice import list_audio_devices, AudioInput
 from jetson_voice.utils import audio_to_float, softmax
 
-from colorama import init
-from termcolor import colored
-
 # pp = pprint.PrettyPrinter(indent=4)
 # print("[jetson_voice/tritonASRclient] Printing GPU stats below:")
 # print(f"torch.cuda.is_available(): {torch.cuda.is_available()}")
@@ -61,8 +58,8 @@ class tritonASRclient():
             self.config['streaming'] = {
                 "frame_length": 1.0,
                 "frame_overlap": 0.5
-                # "frame_length": 0.1,
-                # "frame_overlap": 0.1
+                # "frame_length": 0.5,
+                # "frame_overlap": 0.5
             }
         if 'preprocessor' not in self.config:
             self.config['preprocessor'] = {
@@ -150,24 +147,15 @@ class tritonASRclient():
 
         ###
 
-        # converter (adapted from load the model)
+        # preprocessor (adapted from load the model)
         self.features = self.config["preprocessor"]["features"]
         self.time_to_fft = self.sample_rate * (1.0 / 160.0)     # rough conversion from samples to MEL spectrogram dims
+        # self.time_to_fft = self.sample_rate * (1.0 / 160.0)     # rough conversion from samples to MEL spectrogram dims
         self.dynamic_shapes = {
             'min' : (1, self.features, int(0.1 * self.time_to_fft)), # minimum plausible frame length
             'opt' : (1, self.features, int(1.5 * self.time_to_fft)), # default of .5s overlap factor (1,64,121)
             'max' : (1, self.features, int(3.0 * self.time_to_fft))  # enough for 2s overlap factor
         }
-        #
-
-        # create CTC decoder
-        print("[jetson_voice/tritonASRclient] Creating CTC decoder")
-        self.ctc_decoder = CTCDecoder.from_config( 
-            self.config['ctc_decoder'], 
-            self.config['decoder']['vocabulary'], 
-            os.path.dirname(self.config["model_path"]) 
-            )                                      
-        print(f"[jetson_voice/tritonASRclient] Creating CTC decoder in resource.py: {self.ctc_decoder}, of type: {self.ctc_decoder.type}")
         #
 
         # create streaming buffer
@@ -182,6 +170,16 @@ class tritonASRclient():
         print(f"[jetson_voice/tritonASRclient] self.buffer_length: {self.buffer_length}, type: {self.buffer_length}")
         print(f"[jetson_voice/tritonASRclient] self.buffer_duration: {self.buffer_duration}, type: {self.buffer_duration}")
         print(f"[jetson_voice/tritonASRclient] self.buffer: {self.buffer}, type: {self.buffer}")
+        #
+
+        # create CTC decoder
+        print("[jetson_voice/tritonASRclient] Creating CTC decoder")
+        self.ctc_decoder = CTCDecoder.from_config( 
+            self.config['ctc_decoder'], 
+            self.config['decoder']['vocabulary'], 
+            os.path.dirname(self.config["model_path"]) 
+            )                                      
+        print(f"[jetson_voice/tritonASRclient] Creating CTC decoder in resource.py: {self.ctc_decoder}, of type: {self.ctc_decoder.type}")
         #
 
         # print(f"[jetson_voice/tritonASRclient] Finished initialising tritonASRclient")
@@ -224,29 +222,31 @@ class tritonASRclient():
         )
         return preprocessed_signal
 
-    def decodeOutput(self, logits):
-        # # run the asr model
-        # logits = self.model.execute(torch_to_numpy(preprocessed_signal))
-        logits = np.squeeze(logits)
-        # print(f"[jetson_voice/tritonASRclient] logits.shape after squeeze: {logits.shape}, type(logits) after squeeze: {type(logits)}")
-        logits = softmax(logits, axis=-1)
-        # print(f"[jetson_voice/tritonASRclient] logits.shape after softmax: {logits.shape}, type(logits) after softmax: {type(logits)}")
+    # # TODO: move this over to triton_interface
+    # # only ctc_decoder needs to be passed, the rest of the parameters should be initialised here.
+    # def decodeOutput(self, logits):
+    #     # # run the asr model
+    #     # logits = self.model.execute(torch_to_numpy(preprocessed_signal))
+    #     logits = np.squeeze(logits)
+    #     # print(f"[jetson_voice/tritonASRclient] logits.shape after squeeze: {logits.shape}, type(logits) after squeeze: {type(logits)}")
+    #     logits = softmax(logits, axis=-1)
+    #     # print(f"[jetson_voice/tritonASRclient] logits.shape after softmax: {logits.shape}, type(logits) after softmax: {type(logits)}")
         
-        self.timestep_duration = self.buffer_duration / logits.shape[0]
-        self.n_timesteps_frame = int(self.frame_length / self.timestep_duration)
-        self.n_timesteps_overlap = int(self.frame_overlap / self.timestep_duration)
+    #     self.timestep_duration = self.buffer_duration / logits.shape[0]
+    #     self.n_timesteps_frame = int(self.frame_length / self.timestep_duration)
+    #     self.n_timesteps_overlap = int(self.frame_overlap / self.timestep_duration)
 
-        # print(f"[jetson_voice/tritonASRclient] setting ctc_decoder set_timestep_duration as self.timestep_duration:{self.timestep_duration}")
-        # print(f"[jetson_voice/tritonASRclient] setting ctc_decoder set_timestep_delta as self.n_timesteps_frame:{self.n_timesteps_frame}")
-        self.ctc_decoder.set_timestep_duration(self.timestep_duration)
-        self.ctc_decoder.set_timestep_delta(self.n_timesteps_frame)
+    #     # print(f"[jetson_voice/tritonASRclient] setting ctc_decoder set_timestep_duration as self.timestep_duration:{self.timestep_duration}")
+    #     # print(f"[jetson_voice/tritonASRclient] setting ctc_decoder set_timestep_delta as self.n_timesteps_frame:{self.n_timesteps_frame}")
+    #     self.ctc_decoder.set_timestep_duration(self.timestep_duration)
+    #     self.ctc_decoder.set_timestep_delta(self.n_timesteps_frame)
 
-        transcripts = self.ctc_decoder.decode(logits)
-        # print(f"[jetson_voice/tritonASRclient] Transcripts: {transcripts}")
-        # print(f"[jetson_voice/tritonASRclient] Transcripts length: {len(transcripts)}")
-        # print(f"[jetson_voice/tritonASRclient] Transcripts of type: {type(transcripts)}")
+    #     transcripts = self.ctc_decoder.decode(logits)
+    #     # print(f"[jetson_voice/tritonASRclient] Transcripts: {transcripts}")
+    #     # print(f"[jetson_voice/tritonASRclient] Transcripts length: {len(transcripts)}")
+    #     # print(f"[jetson_voice/tritonASRclient] Transcripts of type: {type(transcripts)}")
 
-        return transcripts
+    #     return transcripts
 
         
 if __name__ == "__main__":
@@ -264,9 +264,6 @@ if __name__ == "__main__":
         list_audio_devices()
         sys.exit()
 
-    # for terminal colors
-    init()
-
     # initialise asr client
     asrClient = tritonASRclient(args)
     
@@ -276,7 +273,11 @@ if __name__ == "__main__":
                          chunk_size=asrClient.chunk_size)
 
     # initialise grpc client
-    interface = tritonInterface()
+    interface = tritonInterface( 
+        ctc_decoder=asrClient.ctc_decoder,
+        buffer_duration=asrClient.buffer_duration,
+        frame_length=asrClient.frame_length,
+        frame_overlap=asrClient.frame_overlap)
 
     # run transcription
     for samples in stream:
@@ -284,17 +285,18 @@ if __name__ == "__main__":
         # print(f"[jetson_voice/tritonASRclient] len(samples): {len(samples)}, type(samples): {type(samples)}")
         input_samples = asrClient.preprocess(samples=samples)
 
+        interface.streaming_asr(input_samples=input_samples)
         # print(f"[jetson_voice/tritonASRclient] len(input_samples): {len(input_samples)}, type(input_samples): {type(input_samples)}")
-        output_samples = interface.streaming_asr(input_samples=input_samples)
+        # output_samples = interface.streaming_asr(input_samples=input_samples)
 
         # print(f"[jetson_voice/tritonASRclient] len(output_samples): {len(output_samples)}, type(output_samples): {type(output_samples)}")
-        transcripts = asrClient.decodeOutput(logits=output_samples)
+        # transcripts = asrClient.decodeOutput(logits=output_samples)
 
-        if len(transcripts[0]['text']) > 0:
-            if transcripts[0]['end']:
-                print(colored("{}".format(transcripts[0]['text']), "yellow"))
-            else:
-                print(transcripts[0]['text'])
+        # if len(transcripts[0]['text']) > 0:
+        #     if transcripts[0]['end']:
+        #         print(colored("{}".format(transcripts[0]['text']), "yellow"))
+        #     else:
+        #         print(transcripts[0]['text'])
 
     # # run transcription
     # for samples in stream:
