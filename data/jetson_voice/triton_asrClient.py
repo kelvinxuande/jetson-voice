@@ -25,6 +25,9 @@ from triton_interface import tritonInterface
 from jetson_voice import list_audio_devices, AudioInput
 from jetson_voice.utils import audio_to_float, softmax
 
+from symspellpy import SymSpell, Verbosity
+import time
+
 # pp = pprint.PrettyPrinter(indent=4)
 # print("[jetson_voice/tritonASRclient] Printing GPU stats below:")
 # print(f"torch.cuda.is_available(): {torch.cuda.is_available()}")
@@ -59,7 +62,7 @@ class tritonASRclient():
         if 'streaming' not in self.config:
             self.config['streaming'] = {
                 "frame_length": 1.0,    # 1.0
-                "frame_overlap": 0.01   # 0.5
+                "frame_overlap": 0.5    # quartznet can do 0.01 but it seems like citrinet can only do 0.5
             }
         if 'preprocessor' not in self.config:
             self.config['preprocessor'] = {
@@ -255,7 +258,7 @@ class tritonASRclient():
 if __name__ == "__main__":
     
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', default='quartznet', type=str, help='path to model, service name, or json config file')
+    parser.add_argument('--model', default=None, type=str, help='path to json config file')
     parser.add_argument('--wav', default=None, type=str, help='path to input wav file')
     parser.add_argument('--mic', default=None, type=str, help='device name or number of input microphone')
     parser.add_argument('--list-devices', action='store_true', help='list audio input devices')
@@ -267,6 +270,23 @@ if __name__ == "__main__":
         list_audio_devices()
         sys.exit()
 
+    print("The current working directory is:")
+    print(os.getcwd())
+    files = os.listdir(os.getcwd() + "/jetson_voice")
+    print(files)
+
+    # spellchecker
+    dictionary_path = "./jetson_voice/frequency_dictionary_en_82_765.txt"
+    bigram_path = "./jetson_voice/frequency_bigramdictionary_en_243_342.txt"
+
+    if not (os.path.isfile(dictionary_path) and os.path.isfile(bigram_path)):
+        print("[jetson_voice/tritonASRclient] WARNING: one of the dictionaries required for spell checking does not exist!")
+
+    print('[jetson_voice/tritonASRclient] initialising additional spellchecker')
+    toc = time.time()
+    spellchecker = SymSpell(max_dictionary_edit_distance=2, prefix_length=7)
+    print(f"[jetson_voice/tritonASRclient] Time taken to load additional spellchecker: {time.time() - toc}; {spellchecker.load_dictionary(dictionary_path, term_index=0, count_index=1)}, {spellchecker.load_bigram_dictionary(bigram_path, term_index=0, count_index=2)}")
+
     # initialise asr client
     asrClient = tritonASRclient(args)
     
@@ -276,8 +296,11 @@ if __name__ == "__main__":
                          chunk_size=asrClient.chunk_size)
 
     # initialise grpc client
+    model_name = args.model.split("/")[1].split(".")[0]
     interface = tritonInterface( 
         ctc_decoder=asrClient.ctc_decoder,
+        model_name=model_name,
+        spellchecker=spellchecker,
         buffer_duration=asrClient.buffer_duration,
         frame_length=asrClient.frame_length,
         frame_overlap=asrClient.frame_overlap)

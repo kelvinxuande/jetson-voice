@@ -20,15 +20,16 @@ from tritonclient.grpc import service_pb2
 from tritonclient.grpc import service_pb2_grpc
 
 from tritonclient.utils import InferenceServerException
+import time
 
 class tritonInterface:
 
-    def __init__(self, ctc_decoder, buffer_duration, frame_length, frame_overlap):
+    def __init__(self, model_name, spellchecker, ctc_decoder, buffer_duration, frame_length, frame_overlap):
         self.flags = {
             "verbose": False,
             "async": False,
             "streaming": True,
-            "model-name": "test_stt_en_quartznet15x5",
+            "model-name": model_name,
             "model-version": "1",
             "batch-size": 1,
             "url": "localhost:8001",
@@ -41,6 +42,9 @@ class tritonInterface:
 
         self.response_modelconfigrequest=None
         self.buffer = []
+
+        # spellchecker
+        self.spellchecker = spellchecker
 
         ### create grpc stub for communicating with the server
         if self.flags["streaming"]:
@@ -152,6 +156,20 @@ class tritonInterface:
             if len(transcripts[0]['text']) > 0:
                 if transcripts[0]['end']:
                     print(colored("{}".format(transcripts[0]['text']), 'yellow'))
+
+                    toc1 = time.time()
+                    # lookup suggestions for multi-word input strings (supports compound
+                    # splitting & merging)
+
+                    # max edit distance per lookup (per single word, not per whole input string)
+                    suggestions = self.spellchecker.lookup_compound(transcripts[0]['text'], max_edit_distance=2)
+                    # display suggestion term, edit distance, and term frequency
+
+                    print(colored("{} ; spellchecker latency: {}".format(suggestions[0]._term, time.time() - toc1), 'green'))
+                    # for suggestion in suggestions:
+                    #     print(suggestion)
+                    # print(f"Time taken for iteration: {time.time() - toc1}")
+
                 else:
                     print(transcripts[0]['text'])
 
