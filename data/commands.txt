@@ -1,6 +1,8 @@
+
 # setup
 cd jetson-voice/
 ./docker/run.sh
+
 
 # convert nemo model to onnx with config
 cd data/
@@ -8,11 +10,17 @@ python patch-nemo_export_onnx.py --type asr --model stt_en_quartznet15x5.nemo --
 ...
 If Killed due to memory error or nemo version incompatibility, use desktop environment with corresponding nemo version
 
-
 # long first run due to onnx > TensorRT (.engine) conversion. Subsequent run, script will load .engine in cache directly. No errors have been known so far in this process.
 
+
+# temporary sequence:
+rm -r jetson_voice/
+cp -r data/jetson_voice/ jetson_voice/
+
 # testing with wav files
-python examples/asr.py --wav data/test-1.wav --model data/stt_en_citrinet_1024.json
+python jetson_voice/triton_asrClient.py --wav data/test-1.wav --model jetson_voice/stt_en_quartznet15x5.json
+python jetson_voice/triton_asrClient.py --wav data/test-1.wav --model jetson_voice/stt_en_citrinet_1024.json 
 
 # run
-python examples/asr.py --mic 24 --model data/stt_en_citrinet_1024.json
+python jetson_voice/triton_asrClient.py --mic 24 --model jetson_voice/stt_en_quartznet15x5.json
+python jetson_voice/triton_asrClient.py --mic 24 --model jetson_voice/stt_en_citrinet_1024.json

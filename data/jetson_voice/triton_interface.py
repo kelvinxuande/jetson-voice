@@ -153,25 +153,32 @@ class tritonInterface:
             # print(f"[jetson_voice/tritonASRclient] Transcripts length: {len(transcripts)}")
             # print(f"[jetson_voice/tritonASRclient] Transcripts of type: {type(transcripts)}")
 
-            if len(transcripts[0]['text']) > 0:
-                if transcripts[0]['end']:
-                    print(colored("{}".format(transcripts[0]['text']), 'yellow'))
+            interested_transcript = transcripts[0]['text']
+            if len(interested_transcript) > 0:
 
-                    toc1 = time.time()
-                    # lookup suggestions for multi-word input strings (supports compound
-                    # splitting & merging)
+                if (interested_transcript != "mm##.") and (interested_transcript != "##."):  # for citrinet weirdness
+                
+                    if transcripts[0]['end']:
 
-                    # max edit distance per lookup (per single word, not per whole input string)
-                    suggestions = self.spellchecker.lookup_compound(transcripts[0]['text'], max_edit_distance=2)
-                    # display suggestion term, edit distance, and term frequency
+                        interested_transcript = interested_transcript.replace("##", "")    # for citrinet weirdness
 
-                    print(colored("{} ; spellchecker latency: {}".format(suggestions[0]._term, time.time() - toc1), 'green'))
-                    # for suggestion in suggestions:
-                    #     print(suggestion)
-                    # print(f"Time taken for iteration: {time.time() - toc1}")
+                        print(colored("{}".format(interested_transcript), 'yellow'))
 
-                else:
-                    print(transcripts[0]['text'])
+                        toc1 = time.time()
+                        # lookup suggestions for multi-word input strings (supports compound
+                        # splitting & merging)
+
+                        # max edit distance per lookup (per single word, not per whole input string)
+                        suggestions = self.spellchecker.lookup_compound(interested_transcript, max_edit_distance=2)
+                        # display suggestion term, edit distance, and term frequency
+
+                        print(colored("{} ; spellchecker latency: {}".format(suggestions[0]._term, time.time() - toc1), 'green'))
+                        # for suggestion in suggestions:
+                        #     print(suggestion)
+                        # print(f"Time taken for iteration: {time.time() - toc1}")
+
+                    else:
+                        print(interested_transcript)
 
 
     def streaming_asr(self, input_samples):
