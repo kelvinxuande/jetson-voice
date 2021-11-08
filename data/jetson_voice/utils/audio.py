@@ -204,8 +204,9 @@ class AudioMicStream:
         
     def next(self):
         self.open()
-            
-        samples = self.stream.read(self.device_chunk_size, exception_on_overflow=False)
+        
+        samples = self.stream.read(self.device_chunk_size, exception_on_overflow=True)
+        # samples = self.stream.read(self.device_chunk_size, exception_on_overflow=False)
         samples = np.frombuffer(samples, dtype=np.int16)
         
         if self.sample_rate != self.device_sample_rate:

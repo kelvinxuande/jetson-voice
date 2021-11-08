@@ -61,8 +61,8 @@ class tritonASRclient():
         # duration of overlap before/after current frame, seconds
         if 'streaming' not in self.config:
             self.config['streaming'] = {
-                "frame_length": 1.0,    # 1.0
-                "frame_overlap": 0.5    # quartznet can do 0.01 but it seems like citrinet can only do 0.5
+                "frame_length": 1.0,    # 1.0 (default)
+                "frame_overlap": 0.5    # quartznet can do 0.01 but it seems like citrinet can only do 0.5 (default)
             }
         if 'preprocessor' not in self.config:
             self.config['preprocessor'] = {
@@ -217,9 +217,12 @@ class tritonASRclient():
 
         if len(samples) < self.n_frame_len:
             samples = np.pad(samples, [0, self.n_frame_len - len(samples)], 'constant')
-            
-        self.buffer[:self.n_frame_overlap] = self.buffer[-self.n_frame_overlap:]
-        self.buffer[self.n_frame_overlap:] = samples
+
+        if self.n_frame_overlap == 0:
+            self.buffer = samples
+        else:
+            self.buffer[:self.n_frame_overlap] = self.buffer[-self.n_frame_overlap:]
+            self.buffer[self.n_frame_overlap:] = samples
 
         # apply pre-processing
         preprocessed_signal, _ = self.preprocessor(
