@@ -1,0 +1,15 @@
+FREQUENCY DICTIONARY
+removed		rom	27234302
+promoted	hello	32960381	999999999
+		help	611054034
+removed		gods	7349181
+removed		god	113624357
+promoted	good	365796396	999999999
+		go	421086358
+promoted	room	176299905	9999999999
+		from	2275595356
+removed		meting	45383
+
+FREQUENCY BIGRAM
+promoted	meeting room		999999999
+promoted	conference room		999999999
