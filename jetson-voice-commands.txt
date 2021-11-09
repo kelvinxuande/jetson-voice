@@ -1,0 +1,8 @@
+
+docker run -it --rm --runtime=nvidia -p 8000:8000 -p 8001:8001 -p 8002:8002 -v /home/xaviernemo/triton-inference/server/docs/examples/model_repository/:/models kelvinxuande/xaviernx_triton-inference-server:1.0.0 /tritonserver/bin/tritonserver --model-repository=/models --backend-directory=/tritonserver/backends/
+
+docker run --runtime nvidia -it --rm --name=jetson-voice --network host --device /dev/snd --device /dev/bus/usb --volume /etc/timezone:/etc/timezone:ro --volume /etc/localtime:/etc/localtime:ro kelvinxuande/xaviernx_dustynv-jetson-voice:1.0.0 bash
+
+docker run --runtime nvidia -it --rm --name=jetson-voice --network host --device /dev/snd --device /dev/bus/usb --volume /etc/timezone:/etc/timezone:ro --volume /etc/localtime:/etc/localtime:ro --volume /home/xaviernemo/jetson-voice/data:/jetson-voice/data kelvinxuande/xaviernx_dustynv-jetson-voice:1.0.0 bash
+
+python jetson_voice/triton_asrClient.py --mic 24 --model jetson_voice/quartznet15x5_epoch142.json
